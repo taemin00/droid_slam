@@ -197,6 +197,7 @@ class FactorGraph:
     @torch.cuda.amp.autocast(enabled=True)
     def update(self, t0=None, t1=None, itrs=2, use_inactive=False, EP=1e-7, motion_only=False):
         """ run update operator on factor graph """
+        #print('run update operator on factor graph')
 
         # motion features
         with torch.cuda.amp.autocast(enabled=False):
@@ -207,6 +208,7 @@ class FactorGraph:
         # correlation features
         corr = self.corr(coords1)
 
+        #print(f'call update op!!!!!!!!!!!!!!!!!net: {self.net}')
         self.net, delta, weight, damping, upmask = \
             self.update_op(self.net, self.inp, corr, motn, self.ii, self.jj)
 
@@ -249,6 +251,7 @@ class FactorGraph:
     @torch.cuda.amp.autocast(enabled=False)
     def update_lowmem(self, t0=None, t1=None, itrs=2, use_inactive=False, EP=1e-7, steps=8):
         """ run update operator on factor graph - reduced memory implementation """
+        print('run update operator on factor graph(reduced memory version)')    
 
         # alternate corr implementation
         t = self.video.counter.value

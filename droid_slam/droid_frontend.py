@@ -7,7 +7,7 @@ from factor_graph import FactorGraph
 
 
 class DroidFrontend:
-    def __init__(self, net, video, args):
+    def __init__(self, net, video, shared_dirty, args):
         self.video = video
         self.update_op = net.update
         self.graph = FactorGraph(video, net.update, max_factors=48, upsample=args.upsample)
@@ -32,6 +32,8 @@ class DroidFrontend:
         self.frontend_thresh = args.frontend_thresh
         self.frontend_radius = args.frontend_radius
 
+        self.shared_dirty = shared_dirty
+
     def __update(self):
         """ add edges, perform update """
 
@@ -39,6 +41,7 @@ class DroidFrontend:
         self.t1 += 1
 
         if self.graph.corr is not None:
+            #print('frontend - self.graph.corr is not None')
             self.graph.rm_factors(self.graph.age > self.max_age, store=True)
 
         self.graph.add_proximity_factors(self.t1-5, max(self.t1-self.frontend_window, 0), 
@@ -48,6 +51,7 @@ class DroidFrontend:
            self.video.disps_sens[self.t1-1], self.video.disps[self.t1-1])
 
         for itr in range(self.iters1):
+            #print('call graph update with iters1')
             self.graph.update(None, None, use_inactive=True)
 
         # set initial pose for next frame
@@ -63,6 +67,7 @@ class DroidFrontend:
 
         else:
             for itr in range(self.iters2):
+                #print('call graph update with iters2')
                 self.graph.update(None, None, use_inactive=True)
 
         # set pose for next itration
@@ -70,7 +75,20 @@ class DroidFrontend:
         self.video.disps[self.t1] = self.video.disps[self.t1-1].mean()
 
         # update visualization
+        device = self.video.dirty.device
+        shared_dirty_tensor = torch.from_numpy(self.shared_dirty).to(device)  # CUDA 장치로 전송
+
+        #print(f'droid frontend - get shared dirty: {shared_dirty_tensor}')
+
+        # Assign to video.dirty (on CUDA)
+        self.video.dirty[:] = shared_dirty_tensor
+
+        #print(f'droid frontend - video.dirty(before): {self.video.dirty}')
+
         self.video.dirty[self.graph.ii.min():self.t1] = True
+
+        #print(f'droid frontend - video.dirty(after): {self.video.dirty}')
+
 
     def __initialize(self):
         """ initialize the SLAM system """

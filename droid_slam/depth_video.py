@@ -19,23 +19,37 @@ class DepthVideo:
         self.wd = wd = image_size[1]
 
         ### state attributes ###
-        self.tstamp = torch.zeros(buffer, device="cuda", dtype=torch.float).share_memory_()
+        #self.tstamp = torch.zeros(buffer, device="cuda", dtype=torch.float).share_memory_()
+        #self.images = torch.zeros(buffer, 3, ht, wd, device="cuda", dtype=torch.uint8)
+        #self.dirty = torch.zeros(buffer, device="cuda", dtype=torch.bool).share_memory_()
+        #self.red = torch.zeros(buffer, device="cuda", dtype=torch.bool).share_memory_()
+        #self.poses = torch.zeros(buffer, 7, device="cuda", dtype=torch.float).share_memory_()
+        #self.disps = torch.ones(buffer, ht//8, wd//8, device="cuda", dtype=torch.float).share_memory_()
+        #self.disps_sens = torch.zeros(buffer, ht//8, wd//8, device="cuda", dtype=torch.float).share_memory_()
+        #self.disps_up = torch.zeros(buffer, ht, wd, device="cuda", dtype=torch.float).share_memory_()
+        #self.intrinsics = torch.zeros(buffer, 4, device="cuda", dtype=torch.float).share_memory_()
+        
+        self.tstamp = torch.zeros(buffer, device="cuda", dtype=torch.float)
         self.images = torch.zeros(buffer, 3, ht, wd, device="cuda", dtype=torch.uint8)
-        self.dirty = torch.zeros(buffer, device="cuda", dtype=torch.bool).share_memory_()
-        self.red = torch.zeros(buffer, device="cuda", dtype=torch.bool).share_memory_()
-        self.poses = torch.zeros(buffer, 7, device="cuda", dtype=torch.float).share_memory_()
-        self.disps = torch.ones(buffer, ht//8, wd//8, device="cuda", dtype=torch.float).share_memory_()
-        self.disps_sens = torch.zeros(buffer, ht//8, wd//8, device="cuda", dtype=torch.float).share_memory_()
-        self.disps_up = torch.zeros(buffer, ht, wd, device="cuda", dtype=torch.float).share_memory_()
-        self.intrinsics = torch.zeros(buffer, 4, device="cuda", dtype=torch.float).share_memory_()
+        self.dirty = torch.zeros(buffer, device="cuda", dtype=torch.bool)
+        self.red = torch.zeros(buffer, device="cuda", dtype=torch.bool)
+        self.poses = torch.zeros(buffer, 7, device="cuda", dtype=torch.float)
+        self.disps = torch.ones(buffer, ht//8, wd//8, device="cuda", dtype=torch.float)
+        self.disps_sens = torch.zeros(buffer, ht//8, wd//8, device="cuda", dtype=torch.float)
+        self.disps_up = torch.zeros(buffer, ht, wd, device="cuda", dtype=torch.float)
+        self.intrinsics = torch.zeros(buffer, 4, device="cuda", dtype=torch.float)
 
         self.stereo = stereo
         c = 1 if not self.stereo else 2
 
         ### feature attributes ###
-        self.fmaps = torch.zeros(buffer, c, 128, ht//8, wd//8, dtype=torch.half, device="cuda").share_memory_()
-        self.nets = torch.zeros(buffer, 128, ht//8, wd//8, dtype=torch.half, device="cuda").share_memory_()
-        self.inps = torch.zeros(buffer, 128, ht//8, wd//8, dtype=torch.half, device="cuda").share_memory_()
+        #self.fmaps = torch.zeros(buffer, c, 128, ht//8, wd//8, dtype=torch.half, device="cuda").share_memory_()
+        #self.nets = torch.zeros(buffer, 128, ht//8, wd//8, dtype=torch.half, device="cuda").share_memory_()
+        #self.inps = torch.zeros(buffer, 128, ht//8, wd//8, dtype=torch.half, device="cuda").share_memory_()
+
+        self.fmaps = torch.zeros(buffer, c, 128, ht//8, wd//8, dtype=torch.half, device="cuda")
+        self.nets = torch.zeros(buffer, 128, ht//8, wd//8, dtype=torch.half, device="cuda")
+        self.inps = torch.zeros(buffer, 128, ht//8, wd//8, dtype=torch.half, device="cuda")
 
         # initialize poses to identity transformation
         self.poses[:] = torch.as_tensor([0, 0, 0, 0, 0, 0, 1], dtype=torch.float, device="cuda")
@@ -180,6 +194,7 @@ class DepthVideo:
 
     def ba(self, target, weight, eta, ii, jj, t0=1, t1=None, itrs=2, lm=1e-4, ep=0.1, motion_only=False):
         """ dense bundle adjustment (DBA) """
+        #print('bundle adjustment of depth video!!')
 
         with self.get_lock():
 
@@ -187,7 +202,18 @@ class DepthVideo:
             if t1 is None:
                 t1 = max(ii.max().item(), jj.max().item()) + 1
 
-            droid_backends.ba(self.poses, self.disps, self.intrinsics[0], self.disps_sens,
-                target, weight, eta, ii, jj, t0, t1, itrs, lm, ep, motion_only)
+            #print('lets call the droid_backend')
+
+            try:
+                #print(f'disp(before): {self.disps}')
+                droid_backends.ba(self.poses, self.disps, self.intrinsics[0], self.disps_sens,
+                    target, weight, eta, ii, jj, t0, t1, itrs, lm, ep, motion_only)
+                #print(f'disp(after): {self.disps}')
+                    
+            except Exception as e:
+                print(f"Error from droid_backends: {str(e)}")
+
+            #droid_backends.ba(self.poses, self.disps, self.intrinsics[0], self.disps_sens,
+            #    target, weight, eta, ii, jj, t0, t1, itrs, lm, ep, motion_only)
 
             self.disps.clamp_(min=0.001)

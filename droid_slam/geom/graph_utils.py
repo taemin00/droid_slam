@@ -40,6 +40,7 @@ def build_frame_graph(poses, disps, intrinsics, num=16, thresh=24.0, r=2):
     poses = poses[0].cpu().numpy()
     disps = disps[0][:,3::8,3::8].cpu().numpy()
     intrinsics = intrinsics[0].cpu().numpy() / 8.0
+
     d = compute_distance_matrix_flow(poses, disps, intrinsics)
 
     count = 0

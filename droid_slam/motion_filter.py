@@ -44,6 +44,9 @@ class MotionFilter:
     @torch.no_grad()
     def track(self, tstamp, image, depth=None, intrinsics=None):
         """ main update operation - run on every frame in video """
+        #print('track of motion filter!!!!')
+        #print(f'intrinsic: {intrinsics}')
+        #print(f'depth: {depth}')
 
         Id = lietorch.SE3.Identity(1,).data.squeeze()
         ht = image.shape[-2] // 8
@@ -66,10 +69,16 @@ class MotionFilter:
         else:                
             # index correlation volume
             coords0 = pops.coords_grid(ht, wd, device=self.device)[None,None]
+            #print(f'coord: {coords0}')
             corr = CorrBlock(self.fmap[None,[0]], gmap[None,[0]])(coords0)
+            #print(f'corr: {corr}')
+                        
 
             # approximate flow magnitude using 1 update iteration
             _, delta, weight = self.update(self.net[None], self.inp[None], corr)
+            #print(f'delta: {delta}')
+            #print(f'weight: {weight}')
+            #print(f'mean of delta: {delta.norm(dim=-1).mean().item()}')
 
             # check motion magnitue / add new frame to video
             if delta.norm(dim=-1).mean().item() > self.thresh:

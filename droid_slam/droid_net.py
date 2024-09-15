@@ -41,6 +41,7 @@ def upsample_disp(disp, mask):
     return cvx_upsample(disp, mask).view(batch, num, 8*ht, 8*wd)
 
 
+
 class GraphAgg(nn.Module):
     def __init__(self):
         super(GraphAgg, self).__init__()
@@ -171,6 +172,13 @@ class DroidNet(nn.Module):
 
     def forward(self, Gs, images, disps, intrinsics, graph=None, num_steps=12, fixedp=2):
         """ Estimates SE3 or Sim3 between pair of frames """
+        print('---------------------forward of droid net----------------------')
+        print(f'image shape: {images.shape}')
+        print(f'disp shape: {disps.shape}')
+        print(f'intrinsics: {intrinsics}')
+        print('---------------------forward of droid net----------------------')
+
+
 
         u = keyframe_indicies(graph)
         ii, jj, kk = graph_to_edge_list(graph)
